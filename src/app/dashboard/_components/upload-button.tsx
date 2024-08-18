@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useOrganization, useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../../../convex/_generated/api";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ import { z } from "zod"
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
+import { Doc } from "../../../../convex/_generated/dataModel";
  
 const formSchema = z.object({
   title: z.string().min(2).max(200),
@@ -53,18 +54,27 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
   if(!orgId) return;
   const postUrl = await generateUploadUrl();
 
+  const fileType = values.file[0].type;
+
   const result = await fetch(postUrl, {
     method: "POST",
-    headers: { "Content-Type": values.file[0].type },
+    headers: { "Content-Type": fileType },
     body: values.file[0],
   });
   const { storageId } = await result.json();
+
+  const types = {
+    "image/png": "image",
+    "application/pdf": "pdf",
+    "text/csv": "csv",
+  } as Record<string, Doc<"files">["type"]>;
 
   try {
     await createFile({
       name: values.title,
       fileId: storageId,
       orgId,
+      type: types[fileType],
     })
     form.reset();
     setIsFileDialogOpen(false);
