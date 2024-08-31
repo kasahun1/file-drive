@@ -7,9 +7,13 @@ import { useToast } from "@/components/ui/use-toast";
 import UploadButton from "./upload-button";
 import { FileCard } from "./file-card";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import { GridIcon, Loader2, RowsIcon, TableIcon } from "lucide-react";
 import { SearchBar } from "./search-bar";
 import { useState } from "react";
+import { DataTable } from "./file-table";
+import { columns } from "./columns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 
 
 function Placeholder(){
@@ -36,12 +40,14 @@ if(organization.isLoaded && user.isLoaded){
  const favorites = useQuery(api.files.getAllFavorites, orgId ? {orgId}: "skip")
  const isLoading = files === undefined;
 
+ const modifiedFiles = files?.map((file) => ({...file, isFavorited: (favorites ?? []).some((favorite) => favorite.fileId === file._id),})) ?? [];
+
   return (
      <div className="w-full">
       {isLoading && (
         <div className="flex flex-col gap-8 items-center w-full mt-24">
         <Loader2 className="h-32 w-32 animate-spin text-gray-500" />
-        <div className="text-2xl">Loading your images...</div>
+        <div className="text-2xl">Loading your files...</div>
         </div>
       )}
      
@@ -57,19 +63,31 @@ if(organization.isLoaded && user.isLoaded){
             <SearchBar query={query} setQuery={setQuery}/>
             <UploadButton/>
           </div>  
-
-      {files?.length === 0 &&  <Placeholder/>}
-          
-      <div className="grid grid-cols-3 gap-4">
+      
+<Tabs defaultValue="grid">
+  <TabsList className="mb-2">
+    <TabsTrigger value="grid" className="flex gap-2 items-center"><GridIcon/> Grid</TabsTrigger>
+    <TabsTrigger value="table" className="flex gap-2 items-center"><RowsIcon/> Table</TabsTrigger>
+  </TabsList>
+  <TabsContent value="grid"> 
+    <div className="grid grid-cols-3 gap-4">
       {
-        files?.map((file) => {
-          return <FileCard favorites={favorites ?? []} key={file._id} file ={file}/>
+        modifiedFiles?.map((file) => {
+          return <FileCard key={file._id} file ={file}/>
         })
       }
       </div>
-      </>
-        )
-       }
-       </div>
+  </TabsContent>
+  <TabsContent value="table">
+  <DataTable columns={columns} data={modifiedFiles} />
+  </TabsContent>
+</Tabs>
+
+{files?.length === 0 &&  <Placeholder/>}
+             
+ </>
+)
+  }
+</div>
   );
 }
