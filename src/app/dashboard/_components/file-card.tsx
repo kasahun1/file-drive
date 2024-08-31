@@ -24,22 +24,27 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-  } from "@/components/ui/alert-dialog"  
+  } from "@/components/ui/alert-dialog" 
+  import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+ 
   
 import { Doc, Id } from "../../../../convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
-import { FileTextIcon, GanttChartIcon, ImageIcon, MoreVertical, StarHalf, StarIcon, TrashIcon } from "lucide-react"
-import { ReactNode, useState } from "react"
-import { useMutation } from "convex/react"
+import { FileIcon, FileTextIcon, GanttChartIcon, ImageIcon, MoreVertical, StarHalf, StarIcon, TrashIcon, UndoIcon } from "lucide-react"
+import { ReactNode, use, useState } from "react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "../../../../convex/_generated/api"
 import { useToast } from "@/components/ui/use-toast"
 import Image from "next/image"
+import { Protect } from "@clerk/nextjs"
+import { formatRelative} from 'date-fns'
   
 function FileCardActions({file, isFavorited}: {file: Doc<"files">, isFavorited: boolean }){
     const deleteFile = useMutation(api.files.deleteFile);
     const toggleFavorite = useMutation(api.files.toggleFavorite)
+    const restoreFile = useMutation(api.files.restoreFile);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const { toast } = useToast()
+    const { toast } = useToast()
 
 return(
     <>
@@ -58,8 +63,8 @@ return(
            await deleteFile({fileId: file._id})
            toast({
             variant: "default",
-            title: "file deleted",
-            description: "now your file has gone from the system"
+            title: "file marked for deletion",
+            description: " your file deleted soon "
           })
       }}>
         Continue
@@ -81,8 +86,42 @@ return(
             )
           }  
         </DropdownMenuItem>
+        <DropdownMenuItem
+            onClick={() => {
+              window.open(getFileUrl(file.fileId), "_blank");
+             }}
+            className="flex gap-1 items-center cursor-pointer"
+          >
+            <FileIcon className="w-4 h-4" /> Download
+          </DropdownMenuItem>
+        <Protect
+         role="org:admin"
+         fallback={<></>}
+        >
         <DropdownMenuSeparator/>
-          <DropdownMenuItem onClick={() => setIsConfirmOpen(true)} className="flex gap-1 text-red-600 items-center cursor-pointer"><TrashIcon className="w-4 h-4"/> Delete </DropdownMenuItem>
+          <DropdownMenuItem 
+          onClick={() => {
+            if (file.shouldDelete) {
+              restoreFile({
+                fileId: file._id,
+              });
+            } else {
+              setIsConfirmOpen(true);
+            }
+          }}
+           className="flex gap-1 text-red-600 items-center cursor-pointer"
+           >
+          {file.shouldDelete ? (
+                <div className="flex gap-1 text-green-600 items-center cursor-pointer">
+                  <UndoIcon className="w-4 h-4" /> Restore
+                </div>
+              ) : (
+                <div className="flex gap-1 text-red-600 items-center cursor-pointer">
+                  <TrashIcon className="w-4 h-4" /> Delete
+                </div>
+              )}
+          </DropdownMenuItem>
+          </Protect>
         </DropdownMenuContent>
       </DropdownMenu>
         </>
@@ -103,13 +142,13 @@ export function FileCard({file, favorites}: {file: Doc<"files">, favorites: Doc<
   } as Record<Doc<"files">["type"], ReactNode>;
 
   const isFavorited = favorites.some((favorite) => favorite.fileId === file._id);
-  
+  const userProfile = useQuery(api.users.getUserProfile, {userId: file.userId});
 
  return(
 <Card>
   <CardHeader className="relative">
     
-    <CardTitle className="flex gap-2">
+    <CardTitle className="flex gap-2 text-base font-normal">
     <div className="flex justify-center">{typeIcons[file.type]}</div>
       {file.name} 
     </CardTitle>
@@ -126,13 +165,18 @@ export function FileCard({file, favorites}: {file: Doc<"files">, favorites: Doc<
   {file.type === "csv" && <GanttChartIcon className="w-20 h-20" />}
   {file.type === "pdf" && <FileTextIcon className="w-20 h-20" />}
   </CardContent>
-  <CardFooter className="flex justify-center">
-   <Button onClick={() => {
-    window.open(getFileUrl(file.fileId), "_blank");
-   }}>
-    Download
-    </Button>
-  </CardFooter>
+  <CardFooter className="flex justify-between">
+        <div className="flex gap-2 text-xs text-gray-700 w-40 items-center">
+          <Avatar className="w-6 h-6">
+            <AvatarImage src={userProfile?.image} />
+            <AvatarFallback>CN</AvatarFallback>
+          </Avatar>
+          {userProfile?.name}
+        </div>
+        <div className="text-xs text-gray-700">
+          Uploaded on {formatRelative(new Date(file._creationTime), new Date())}
+        </div>
+      </CardFooter>
 </Card>
 
  )

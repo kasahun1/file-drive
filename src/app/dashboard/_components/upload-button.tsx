@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useOrganization, useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import {
   Dialog,
@@ -35,8 +35,8 @@ const formSchema = z.object({
 })
 
 export default function UploadButton() {
-  const { toast } = useToast()
- const organization = useOrganization();
+const { toast } = useToast()
+const organization = useOrganization();
 const user = useUser();
 const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
@@ -101,11 +101,13 @@ if(organization.isLoaded && user.isLoaded){
 
  const createFile = useMutation(api.files.createFile);
 
- const [idFileDialogOpen, setIsFileDialogOpen] = useState(false);
+ const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
 
   return (
 
-  <Dialog open={idFileDialogOpen} onOpenChange={(isOpen) => setIsFileDialogOpen(isOpen)}>
+  <Dialog open={isFileDialogOpen} onOpenChange={(isOpen) => {setIsFileDialogOpen(isOpen);
+  //  form.reset();
+   }}>
   <DialogTrigger asChild>
   <Button onClick={() => {}}>
     Upload file
@@ -144,7 +146,8 @@ if(organization.isLoaded && user.isLoaded){
           )}
         />
         
-        <Button type="submit" 
+        <Button 
+          type="submit" 
           disabled={form.formState.isSubmitting} 
           className="flex gap-1">
             {
