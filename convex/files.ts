@@ -112,6 +112,10 @@ export const createFile = mutation({
     } else {
       files = files.filter((file) => !file.shouldDelete);
     }
+    if (args.type) {
+      files = files.filter((file) => file.type === args.type);
+    }
+
     return files;
     }
   });

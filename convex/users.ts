@@ -102,7 +102,7 @@ export const getUserProfile = query({
   },
 });
 
-export const getMe = query({
+export const getMe = query({ 
   args: {},
   async handler(ctx) {
     const identity = await ctx.auth.getUserIdentity();
